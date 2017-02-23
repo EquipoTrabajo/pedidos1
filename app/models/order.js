@@ -7,7 +7,15 @@ const OrderSchema = new Schema({
     type: Schema.Types.ObjectId, ref: 'User'
   },
   address_delivered: {
-    type: String
+    lat: {
+      type: Number
+    },
+    lng: {
+      type: Number
+    },
+    zoom: {
+      type: Number
+    }
   },
   state: {
     name: {
@@ -18,7 +26,7 @@ const OrderSchema = new Schema({
     },
     count: {
       type: Number
-    }
+    },
     created_at: {
       type: Date,
       default: Date.now

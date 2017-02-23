@@ -8,6 +8,10 @@ var config = {
     app: {
       name: 'systemapedidos'
     },
+    jwt: {
+      secret: 'sistemadepedidos',
+      session: false
+    },
     port: process.env.PORT || 3000,
     db: 'mongodb://127.0.0.4/systemapedidos-development'
     //db: 'mongodb://localhost/systemapedidos-development'
@@ -18,6 +22,10 @@ var config = {
     app: {
       name: 'systemapedidos'
     },
+    jwt: {
+      secret: 'sistemadepedidos',
+      session: false
+    },
     port: process.env.PORT || 3000,
     db: 'mongodb://localhost/systemapedidos-test'
   },
@@ -26,6 +34,10 @@ var config = {
     root: rootPath,
     app: {
       name: 'systemapedidos'
+    },
+    jwt: {
+      secret: 'sistemadepedidos',
+      session: false
     },
     port: process.env.PORT || 3000,
     db: 'mongodb://localhost/systemapedidos-production'

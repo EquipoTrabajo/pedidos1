@@ -9,6 +9,8 @@ var compress = require('compression');
 var methodOverride = require('method-override');
 var exphbs  = require('express-handlebars');
 
+var auth = require("../app/controllers/auth/passport-strategy")();
+
 module.exports = function(app, config) {
   var env = process.env.NODE_ENV || 'development';
   app.locals.ENV = env;
@@ -32,6 +34,8 @@ module.exports = function(app, config) {
   app.use(compress());
   app.use(express.static(config.root + '/public'));
   app.use(methodOverride());
+
+  app.use(auth.initialize());
 
   var controllers = glob.sync(config.root + '/app/routes/*.js');
   controllers.forEach(function (controller) {
