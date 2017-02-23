@@ -6,3 +6,8 @@ body {
 a {
   color: #00B7FF;
 }
+
+div#main-content {
+  position: relative;
+  top: 40px;
+}

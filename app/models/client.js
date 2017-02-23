@@ -12,4 +12,4 @@ const ClientSchema = new Schema({
   }]
 }, {discriminatorKey: 'type'});
 
-const Client = module.exports = User.discriminator('client', companySchema);
+const Client = module.exports = User.discriminator('client', ClientSchema);
