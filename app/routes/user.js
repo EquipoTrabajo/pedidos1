@@ -14,5 +14,9 @@ router.post('/client', clientCtrl.store);
 
 router.post('/login', userCtrl.login);
 
-router.post('/privatetest', auth.authenticate(), userCtrl.privatetest);
+router.use(auth.authenticate());
+
+// router.get('/privatetest', userCtrl.privatetest);
+
+router.get('/profile', clientCtrl.index);
 

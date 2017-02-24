@@ -6,7 +6,23 @@ const ExtractJwt = passportJWT.ExtractJwt;
 const Strategy = passportJWT.Strategy;  
 const params = {  
     secretOrKey: cfg.jwt.secret,
-    jwtFromRequest: ExtractJwt.fromHeader('jwt')
+    jwtFromRequest: (req) =>  {
+      var token = null;
+      if (req && req.cookies)
+      {
+          token = req.cookies['token'];
+      }
+      return token;
+    }
+};
+
+var cookieExtractor = function(req) {
+    var token = null;
+    if (req && req.cookies)
+    {
+        token = req.cookies['token'];
+    }
+    return token;
 };
 
 module.exports = function() {  

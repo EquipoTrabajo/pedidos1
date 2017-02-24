@@ -9,9 +9,17 @@ module.exports = function (app) {
 };
 
 router.get('/', function (req, res, next) {
-  res.render('index');
+  if(req.user) {
+    res.render('index', {'user': user});
+  } else {
+    res.render('index');
+  }
 });
 
 router.get('/register', function (req, res, next) {
   res.render('register');
+});
+
+router.get('/map', (req, res, next) => {
+  res.render('map');
 });
