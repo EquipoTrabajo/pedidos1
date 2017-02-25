@@ -11,3 +11,9 @@ div#main-content {
   position: relative;
   top: 40px;
 }
+
+#map {
+  position: relative;
+  height: 400px;
+  width: 400px;
+}

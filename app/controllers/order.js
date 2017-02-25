@@ -1,5 +1,9 @@
 const Order = require('../models/order');
 
+const googleMapsClient = require('@google/maps').createClient({
+  key: 'AIzaSyCh2BCQIB04NNDYyulpIio-mIPK0_ZGAzU'
+});
+
 /*var rad = function(x) {
   return x * Math.PI / 180;
 };
