@@ -15,5 +15,5 @@ div#main-content {
 #map {
   position: relative;
   height: 400px;
-  width: 400px;
+  width: 100%;
 }

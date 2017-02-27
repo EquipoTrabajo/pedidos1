@@ -10,6 +10,13 @@ const OrderSchema = new Schema({
     type: Schema.Types.ObjectId, ref: 'Product'
   },
   address_deliver: {
+    name: {
+      type: String
+    },
+    location: {
+      type: [Number],
+      index: '2d'
+    },
     lat: {
       type: Number
     },

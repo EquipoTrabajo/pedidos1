@@ -8,19 +8,17 @@ const EmployeeSchema = new Schema({
     type: Number
   },
   location: {
-    lat: {
-      type: Number
-    },
-    lng: {
-      type: Number
-    },
-    zoom: {
+    type: [Number],
+    index: '2d'
+  },
+  wip: {
+    orders: [{
+      type: Schema.Types.ObjectId, ref: 'Order'
+    }],
+    timeToFinish: {
       type: Number
     }
-  },
-  orders: [{
-    type: Schema.Types.ObjectId, ref: 'Order'
-  }]
+  }
 }, {discriminatorKey: 'type'});
 
 const Employee = module.exports = User.discriminator('employee', EmployeeSchema);
