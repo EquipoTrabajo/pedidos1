@@ -5,11 +5,20 @@ const request = require('request');
 module.exports.nearestEmployee = (coords) => {
   Employee.find({'location': {$near: coords, $maxDistance: maxDistance}}).exec()
     .then((employee) => {
+      console.log('Employee in: ');
+      console.log(JSON.stringify(employee, null, ' '))
+      console.log('Employee out: ');
       return employee;
     })
     .catch((err) => {
+      console.log('Employee err: ' + err);
       return err;
     });
+}
+
+
+module.exports.addEmployee = (req, res, next) => {
+  res.render('add-employee');
 }
 
 
