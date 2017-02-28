@@ -40,12 +40,14 @@ module.exports.assignOrder = (id, orderId) => {
   return new Promise((resolve, reject) => {
     Employee.findById(id).populate('wip.orders').exec()
       .then((employee) => {
+        console.log(JSON.stringify(employee, null, ' '));
         employee.wip.orders.push(orderId);
 
-        if (employee.wip.orders) {
-          //let ordersLocations = employee.wip.orders.address_deliver.location.reduce((x,y) => x[1] + ',' + x[0] + '|' + y[1] + ',' + y[0]);
-          // let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + employee.location[1] + ',' + employee.location[0] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
-          // console.log(urlRequest);
+
+        if (employee.wip.orders.length > 0) {
+          let ordersLocations = employee.wip.orders.map(x => x.address_deliver.location).reduce((x, y) => x + '|' + y);
+          let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + employee.location[0] + ',' + employee.location[1] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+          console.log(urlRequest);
         }
         // request('https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=40.6655101,-73.89188969999998&destinations=40.6860072%2C-73.6334271|40.598566%2C-73.7527626&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY')
         return employee.save();
