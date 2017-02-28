@@ -16,20 +16,13 @@ const OrderSchema = new Schema({
     location: {
       type: [Number],
       index: '2d'
-    },
-    lat: {
-      type: Number
-    },
-    lng: {
-      type: Number
-    },
-    zoom: {
-      type: Number
     }
   },
   state: {
     name: {
-      type: String
+      type: String,
+      default: 'En Espera',
+      enum: ['En Espera', 'Empacando', 'Enviando']
     },
     review: {
       type: Number

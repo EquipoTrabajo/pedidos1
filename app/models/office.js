@@ -3,13 +3,20 @@ const User = require('./user');
 
 const Schema = mongoose.Schema;
 
-const EmployeeSchema = new Schema({
+const OfficeSchema = new Schema({
   cod: {
     type: Number
   },
   location: {
     type: [Number],
     index: '2d'
+  },
+  packTime: {
+    type: Number,
+    default: 0
+  },
+  employeesNumber: {
+    type: Number
   },
   wip: {
     orders: [{
@@ -21,4 +28,4 @@ const EmployeeSchema = new Schema({
   }
 }, {discriminatorKey: 'type'});
 
-const Employee = module.exports = User.discriminator('employee', EmployeeSchema);
+const Office = module.exports = User.discriminator('office', OfficeSchema);

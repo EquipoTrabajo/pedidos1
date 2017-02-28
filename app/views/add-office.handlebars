@@ -1,0 +1,91 @@
+<div class="container">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Registro Tienda</h3>
+    </div>
+    <div class="panel-body">
+      <form action="/office" method="POST">
+        <div class="form-group">
+          <label for="cod">Codigo Tienda:</label>
+          <input type="text" name="cod" id="cod" class="form-control" placeholder="Introduzca el código de empelado">
+        </div>
+        <div class="form-group">
+          <label for="name" class="label-control">Nombre:</label>
+          <input type="text" name="name" id="name" class="form-control" placeholder="Escriba su nombre">
+        </div>
+        <div class="form-group">
+          <label for="email" class="label-control">Correo:</label>
+          <input type="email" name="email" id="email" class="form-control" placeholder="Escriba su correo">
+        </div>
+        <div class="form-group">
+          <label for="password" class="label-control">Clave:</label>
+          <input type="password" name="password" id="password" class="form-control" placeholder="Escriba su clave">
+        </div>
+        <div class="form-group">
+          <label for="password-confirmation" class="label-control">Clave:</label>
+          <input type="password" name="password-confirmation" id="password-confirmation" class="form-control" placeholder="Repita su clave">
+        </div>
+         <div class="form-group">
+          <label for="coord">Coordenadas:</label>
+          <input type="text" id="lat" name="location[0]" class="form-control col-*-6" placeholder="Latitud">
+          <input type="text" id="lng" name="location[1]" class="form-control col-*-6" placeholder="Longitud">
+        </div>
+        <input id="pac-input" name="address_deliver.name" type="text" placeholder="Search Box">
+        <div id="map"></div>
+        <div class="btn-group" role="group">
+          <button type="submit" class="btn btn-primary">Regsitrar</button>
+          <a href="/" class="btn btn-default">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  var map;
+  function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: {lat: -34.397, lng: 150.644},
+      zoom: 8
+    });
+    google.maps.event.addListener(map, 'click', function(event) {
+      console.log( JSON.stringify(event, null, ' ') );
+      document.getElementById('lat').value = event.latLng.lat();
+      document.getElementById('lng').value = event.latLng.lng();
+    });
+
+    var searchBox = new google.maps.places.SearchBox(document.getElementById('pac-input'));
+    map.controls[google.maps.ControlPosition.TOP_CENTER].push(document.getElementById('pac-input'));
+    google.maps.event.addListener(searchBox, 'places_changed', function() {
+    searchBox.set('map', null);
+
+
+    var places = searchBox.getPlaces();
+
+    var bounds = new google.maps.LatLngBounds();
+    var i, place;
+    for (i = 0; place = places[i]; i++) {
+      (function(place) {
+        var marker = new google.maps.Marker({
+          position: place.geometry.location
+        });
+        marker.bindTo('map', searchBox, 'map');
+        google.maps.event.addListener(marker, 'map_changed', function() {
+          if (!this.getMap()) {
+            this.unbindAll();
+          }
+        });
+        bounds.extend(place.geometry.location);
+
+
+      }(place));
+
+    }
+    map.fitBounds(bounds);
+    searchBox.set('map', map);
+    map.setZoom(Math.min(map.getZoom(),12));
+
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY&libraries=places&callback=initMap" async defer></script>
+{{!-- This API project is not authorized to use this API. Please ensure this API is activated in the Google Developers Console: https://console.developers.google.com/apis/api/places_backend?project=_ For more information on authentication and Google Maps Javascript API services please see: https://developers.google.com/maps/documentation/javascript/get-api-key" --}}
