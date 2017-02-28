@@ -13,48 +13,23 @@ module.exports.addOrder = (req, res, next) => {
   res.render('add-order', {'user': req.user});
 }
 
-module.exports.store = (req, res, next) => {
+module.exports.store = async (req, res, next) => {
   Order.create(req.body)
-    .then((order) => {
+    .then(async (order) => {
       console.log('order emp in: ');
-      // let employee = employeeCtrl.nearestEmployee(order.address_deliver.location);
-      // console.log(typeof employee);
-      // console.log(JSON.stringify(employee, null, ' '));
-      // return res.json(employee);
-      console.log('order emp out: ');
-      /*employeeCtrl.assignOrder(employee._id)
-        .then((rslt) => {
-          return res.json(order);
-        });*/
-      return Employee.find({'location': {$near: order.address_deliver.location, $maxDistance: maxDistance}}).exec()
-        .then((employee) => {
-          console.log('Employee in: ');
-          console.log(JSON.stringify(employee, null, ' '))
-          console.log('Employee out: ');
-          // return res.json(employee);
-          Employee.findById(employee._id).exec()
-            .then((employee) => {
-              employee.wip.orders.push(order._id);
-              employee.save()
-                .then((emp) => {
-                  return emp;
-                })
-                .catch((err) => {
-                  return err;
-                });
-            })
-            .catch((err) => {
-              return err;
-            })
-          .then((rslt) => {
-            return res.json(rslt);
-          })
-          .catch((err) => {
-            return err;
-          });
-        });
-    })
+      try {
+        let nearestEmployee = await employeeCtrl.nearestEmployee(order.address_deliver.location);
+        console.log(typeof nearestEmployee);
+        console.log(JSON.stringify(nearestEmployee, null, ' '));
+        console.log('order emp out: ');
 
+        let assignOrder = await employeeCtrl.assignOrder(nearestEmployee[0]._id, order._id);
+        return res.json({assignOrder, order});
+
+      } catch(e) {
+        return next(e);
+      }
+    })
     .catch((err) => {
       return next(err);
     });

@@ -9,7 +9,7 @@ const router = express.Router();
 module.exports = function (app) {
   app.use('/', router);
 };
-router.use(auth.authenticate());
+// router.use(auth.authenticate());
 
 router.get('/order', orderCtrl.addOrder);
 
