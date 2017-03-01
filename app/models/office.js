@@ -13,7 +13,7 @@ const OfficeSchema = new Schema({
   },
   packTime: {
     type: Number,
-    default: 0
+    default: 1
   },
   employeesNumber: {
     type: Number

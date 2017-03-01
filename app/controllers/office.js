@@ -21,6 +21,28 @@ module.exports.nearestOffice = (coords) => {
 }
 
 
+module.exports.setTimeToFinish = (id) => {
+  Office.findById(id).populate('wip.orders').exec()
+    .then(office => {
+      if (office.wip.orders.length > 0) {
+        let timePacking = office.wip.orders.length * office.packTime;
+        let ordersLocations = office.wip.orders.map(x => x.address_deliver.location).reduce((x, y) => x + '|' + y);
+        let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+        /*request(urlRequest, (err, response) => {
+          if (response.body.status === 'OK') {
+            if (respose.body.rows.elements.status === 'OK') {
+              office.wip.timeToFinish += response.body.rows.elements.distance.value/60;
+            }
+          }
+        });*/
+      }
+    })
+    .catch(err => {
+      return err;
+    });
+}
+
+
 module.exports.addOffice = (req, res, next) => {
   res.render('add-office');
 }

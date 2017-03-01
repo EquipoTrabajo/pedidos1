@@ -18,7 +18,7 @@ const OrderSchema = new Schema({
       index: '2d'
     }
   },
-  state: {
+  state: [{
     name: {
       type: String,
       default: 'En Espera',
@@ -34,6 +34,14 @@ const OrderSchema = new Schema({
       type: Date,
       default: Date.now
     }
+  }],
+  currentState: {
+    type: String,
+    default: 'En Espera',
+    enum: ['En Espera', 'Empacando', 'Enviando']
+  },
+  timeToFinish: {
+    type: Number
   },
   created_at: {
     type: Date,
