@@ -21,13 +21,12 @@ const OrderSchema = new Schema({
   state: [{
     name: {
       type: String,
-      default: 'En Espera',
-      enum: ['En Espera', 'Empacando', 'Enviando']
+      default: 'En Espera'
     },
     review: {
       type: Number
     },
-    count: {
+    time: {
       type: Number
     },
     created_at: {

@@ -11,16 +11,32 @@ const OfficeSchema = new Schema({
     type: [Number],
     index: '2d'
   },
-  packTime: {
-    type: Number,
-    default: 1
-  },
-  employeesNumber: {
-    type: Number
+  settings: {
+    packTime: {
+      type: Number,
+      default: 1
+    },
+    employeesNumber: {
+      type: Number
+    },
+    deliveryEmployees: {
+      type: Number
+    },
+    packingEmployees: {
+      type: Number
+    }
   },
   wip: {
     orders: [{
-      type: Schema.Types.ObjectId, ref: 'Order'
+      order: {
+        type: Schema.Types.ObjectId, ref: 'Order'
+      },
+      distance: {
+        type: Number
+      },
+      duration: {
+        type: Number
+      }
     }],
     timeToFinish: {
       type: Number
@@ -28,4 +44,4 @@ const OfficeSchema = new Schema({
   }
 }, {discriminatorKey: 'type'});
 
-const Office = module.exports = User.discriminator('office', OfficeSchema);
+const Office = module.exports = User.discriminator('Office', OfficeSchema);

@@ -1,5 +1,6 @@
 const Order = require('../models/order');
 const Office = require('../models/office');
+const Package = require('../models/package');
 const officeCtrl = require('../controllers/office');
 const maxDistance = 200 /6371;
   const request = require('request');
@@ -87,4 +88,51 @@ module.exports.changeStatus = (req, res, next) => {
 }
 
 
+module.exports.setStatusOnHold = (id, office) => {
+  //tiempo de espera, 
+  let cantOrders = office.wip.orders.length;
+  let status = {
+    name: 'En Espera',
+    time: cantOrders * office.packTime
+  }
+
+  return status;
+}
+
+module.exports.setStatusPacking = (order, office) => {
+  const orderDistance = 1 /6371;
+
+  Package.findOne({'orders.location': {$near: coords, $maxDistance: orderDistance}}).exec()
+    .then(package => {
+      if (package && package.orders.length < 3) {
+        package.orders.push({
+          'order': order._id,
+          'location': order.location,
+          'distance': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].distance,
+          'duration': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].duration
+        });
+      } else {
+        //create new package TODO
+      }
+
+      let status = {
+        name: 'Empacando',
+        time: office.packTime
+      }
+      return status;
+      
+    })
+    .catch(err => {
+      return err;
+    });
+}
+
+module.exports.setStatusDelivering = (order, office) => {
+  
+  let status = {
+    name: 'Enviando',
+    // time: office.packTime TODO
+  }
+  return status;
+}
 
