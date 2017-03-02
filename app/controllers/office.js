@@ -27,7 +27,7 @@ module.exports.setTimeToFinish = (id) => {
       if (office.wip.orders.length > 0) {
         let timePacking = office.wip.orders.length * office.packTime;
         let ordersLocations = office.wip.orders.map(x => x.address_deliver.location).reduce((x, y) => x + '|' + y);
-        let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+        let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
         /*request(urlRequest, (err, response) => {
           if (response.body.status === 'OK') {
             if (respose.body.rows.elements.status === 'OK') {
@@ -69,22 +69,24 @@ module.exports.index = (req, res, next) => {
     })
 }
 
-module.exports.assignOrder = (id, orderId) => {
+module.exports.assignOrder = (id, order) => {
   return new Promise((resolve, reject) => {
     Office.findById(id).populate('wip.orders').exec()
       .then((office) => {
         console.log(JSON.stringify(office, null, ' '));
-        office.wip.orders.push(order._id);
-        office.wip.timeToFinish = order.timeToFinish;
+        office.wip.orders.order.push(order._id);
+        // office.wip.timeToFinish = order.timeToFinish;
 
-        
-        // if (office.wip.orders.length > 0) {
-        //   let ordersLocations = office.wip.orders.map(x => x.address_deliver.location).reduce((x, y) => x + '|' + y);
-        //   let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + ordersLocations + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
-        //   console.log(urlRequest);
-        // }
-        // request('https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=40.6655101,-73.89188969999998&destinations=40.6860072%2C-73.6334271|40.598566%2C-73.7527626&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY')
-        return office.save();
+        let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + order.location[0] + ',' + order.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+        request(urlRequest, (err, response) => {
+          if (response.body.status === 'OK') {
+            if (respose.body.rows.elements.status === 'OK') {
+              office.wip.orders.distance = response.body.rows.elements.distance.value;
+              office.wip.orders.duration = response.body.rows.elements.duration.value;
+            }
+          }
+          return office.save();
+        });
       })
       .then(rslt => resolve(rslt))
       .catch((err) => {

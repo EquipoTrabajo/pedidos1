@@ -36,8 +36,7 @@ const OrderSchema = new Schema({
   }],
   currentState: {
     type: String,
-    default: 'En Espera',
-    enum: ['En Espera', 'Empacando', 'Enviando']
+    default: 'En Espera'
   },
   timeToFinish: {
     type: Number

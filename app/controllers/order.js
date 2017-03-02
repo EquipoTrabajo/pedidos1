@@ -21,6 +21,8 @@ module.exports.store = async (req, res, next) => {
       try {
         let nearestOffice = await officeCtrl.nearestOffice(order.address_deliver.location);
 
+
+
         let assignOrder = await officeCtrl.assignOrder(nearestOffice[0]._id, order);
         return res.json({assignOrder, order});
 
@@ -56,7 +58,7 @@ module.exports.show = (req, res, next) => {
 
 
 module.exports.changeStatus = (req, res, next) => {
-  Order.findById(req.params.id).exec()
+  /*Order.findById(req.params.id).exec()
     .then(order => {
       Office.findById(req.params.idOffice).populate('wip.orders').exec()
         .then(office => {
@@ -84,7 +86,7 @@ module.exports.changeStatus = (req, res, next) => {
     })
     .catch(err => {
       next(err);
-    });
+    });*/
 }
 
 
@@ -94,14 +96,21 @@ module.exports.setStatusOnHold = (id, office) => {
     name: 'En Espera',
     time: office.packTime * (cantOrders/office.settings.packingEmployees)
   }
-
-  return status;
+  return new Promise((resolve, reject) => {
+    Order.findById(id).exec()
+      .then(order => {
+        order.state.push(status);
+        return order.save();
+      })
+      .then(rslt => resolve(rslt))
+      .catch(err => reject(err));
+  });
 }
 
 module.exports.setStatusPacking = (order, office) => {
   const orderDistance = 1 /6371;
 
-  let getDistanceFromLatLonInKm = (lat1,lon1,lat2,lon2) => {
+  let getDistance = (lat1,lon1,lat2,lon2) => {
     let R = 6371;
     let dLat = deg2rad(lat2-lat1);
     let dLon = deg2rad(lon2-lon1); 
@@ -119,41 +128,51 @@ module.exports.setStatusPacking = (order, office) => {
     return deg * (Math.PI/180)
   }
 
-  Package.findOne({'orders.location': {$near: coords, $maxDistance: orderDistance}}).exec()
-    .then(package => {
-      if (package && package.orders.length < 3) {
-        package.orders.push({
-          'order': order._id,
-          'location': order.location,
-          'distance': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].distance,
-          'duration': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].duration
-        });
-        let packageDistance = package.orders.reduce((x, y) => {
-          return getDistanceFromLatLonInKm(x.location[0], x.location[1], y.location[0], y.location[1]);
-        });
-        package.distance = packageDistance;
-      } else {
-        //create new package TODO
-      }
+  let newOrder = {
+    'order': order._id,
+    'location': order.location,
+    'distance': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].distance,
+    'duration': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].duration
+  }
 
-      let status = {
-        name: 'Empacando',
-        time: office.packTime
-      }
-      return status;
-      
-    })
-    .catch(err => {
-      return err;
-    });
+  let status = {
+    name: 'Empacando',
+    time: office.packTime
+  }
+
+  return new Promise((resolve, reject) => {
+    Package.findOne({'orders.location': {$near: coords, $maxDistance: orderDistance}}).exec()
+      .then(package => {
+        if (package && package.orders.length < 3) {
+          package.orders.push(newOrder);
+          let packageDistance = package.orders.reduce((x, y) => {
+            return getDistance(x.location[0], x.location[1], y.location[0], y.location[1]);
+          });
+          package.distance = packageDistance;
+        } else {
+          package = new Package({
+            'office': office._id,
+            'orders': newOrder
+          });
+        }
+        return Promise.all([package.save(), Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()]);
+      })
+      .then(rslts => rslts)
+      .catch(err => {
+        return err;
+      });
+  });
 }
 
-module.exports.setStatusDelivering = (package, office) => {
-  
+module.exports.setStatusDelivering = (order, office, package) => {
   let status = {
     name: 'Enviando',
     time: package.timeToFinish
   }
-  return status;
+  return new Promise((resolve, reject) => {
+    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
+      .then(order => resolve(order))
+      .catch(err => reject(err));
+  }); 
 }
 
