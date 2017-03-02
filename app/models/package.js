@@ -25,6 +25,12 @@ const PackageSchema = new Schema({
     type: Boolean,
     default: false
   },
+  distance: {
+    type: Number
+  },
+  duration: {
+    type: Number
+  },
   timeToFinish: {
     type: Number
   },

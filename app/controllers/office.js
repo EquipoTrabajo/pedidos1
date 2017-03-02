@@ -74,7 +74,8 @@ module.exports.assignOrder = (id, orderId) => {
     Office.findById(id).populate('wip.orders').exec()
       .then((office) => {
         console.log(JSON.stringify(office, null, ' '));
-        office.wip.orders.push(orderId);
+        office.wip.orders.push(order._id);
+        office.wip.timeToFinish = order.timeToFinish;
 
         
         // if (office.wip.orders.length > 0) {

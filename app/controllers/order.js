@@ -21,7 +21,7 @@ module.exports.store = async (req, res, next) => {
       try {
         let nearestOffice = await officeCtrl.nearestOffice(order.address_deliver.location);
 
-        let assignOrder = await officeCtrl.assignOrder(nearestOffice[0]._id, order._id);
+        let assignOrder = await officeCtrl.assignOrder(nearestOffice[0]._id, order);
         return res.json({assignOrder, order});
 
       } catch(e) {
@@ -89,11 +89,10 @@ module.exports.changeStatus = (req, res, next) => {
 
 
 module.exports.setStatusOnHold = (id, office) => {
-  //tiempo de espera, 
   let cantOrders = office.wip.orders.length;
   let status = {
     name: 'En Espera',
-    time: cantOrders * office.packTime
+    time: office.packTime * (cantOrders/office.settings.packingEmployees)
   }
 
   return status;
@@ -101,6 +100,24 @@ module.exports.setStatusOnHold = (id, office) => {
 
 module.exports.setStatusPacking = (order, office) => {
   const orderDistance = 1 /6371;
+
+  let getDistanceFromLatLonInKm = (lat1,lon1,lat2,lon2) => {
+    let R = 6371;
+    let dLat = deg2rad(lat2-lat1);
+    let dLon = deg2rad(lon2-lon1); 
+    let a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+      ; 
+    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    let d = R * c;
+    return d;
+  }
+
+  let deg2rad = (deg) => {
+    return deg * (Math.PI/180)
+  }
 
   Package.findOne({'orders.location': {$near: coords, $maxDistance: orderDistance}}).exec()
     .then(package => {
@@ -111,6 +128,10 @@ module.exports.setStatusPacking = (order, office) => {
           'distance': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].distance,
           'duration': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].duration
         });
+        let packageDistance = package.orders.reduce((x, y) => {
+          return getDistanceFromLatLonInKm(x.location[0], x.location[1], y.location[0], y.location[1]);
+        });
+        package.distance = packageDistance;
       } else {
         //create new package TODO
       }
@@ -127,11 +148,11 @@ module.exports.setStatusPacking = (order, office) => {
     });
 }
 
-module.exports.setStatusDelivering = (order, office) => {
+module.exports.setStatusDelivering = (package, office) => {
   
   let status = {
     name: 'Enviando',
-    // time: office.packTime TODO
+    time: package.timeToFinish
   }
   return status;
 }

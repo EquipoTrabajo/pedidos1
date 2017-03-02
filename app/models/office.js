@@ -41,6 +41,9 @@ const OfficeSchema = new Schema({
     timeToFinish: {
       type: Number
     }
+  },
+  status: {
+    type: String
   }
 }, {discriminatorKey: 'type'});
 
