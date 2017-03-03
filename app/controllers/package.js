@@ -61,13 +61,14 @@ module.exports.completePackage = (id) => {
         let packageDistance += orders.distance[0];
         let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + package.office.location[0] + ',' + package.office.location[1] + '&destinations=' + orders[orders.length-1].location[0] + ',' + orders[orders.length-1].location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
         request(urlRequest, (err, response) => {
-          if (order.state.name === 'En Espera') {
-            if (response.body.status === 'OK') {
+          if (response.body.status === 'OK') {
+            if (respose.body.rows.elements.status === 'OK') {
               package.duration = response.body.rows.map(x => x).elements.reduce((x, y) => {
                 return x.duration.value;
               })
             }
           }
+          package.timeToFinish = package.duration * 2;
           package.complete = true;
         });
 

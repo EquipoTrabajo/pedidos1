@@ -3,12 +3,9 @@ const Office = require('../models/office');
 const Package = require('../models/package');
 const officeCtrl = require('../controllers/office');
 const maxDistance = 200 /6371;
-  const request = require('request');
+const request = require('request');
 
-/*const googleMapsClient = require('@google/maps').createClient({
-  key: 'AIzaSyCh2BCQIB04NNDYyulpIio-mIPK0_ZGAzU'
-});
-*/
+
 
 module.exports.addOrder = (req, res, next) => {
   res.render('add-order', {'user': req.user});
@@ -18,7 +15,7 @@ module.exports.store = async (req, res, next) => {
   Order.create(req.body)
     .then(async (order) => {
       try {
-        let nearestOffice = await officeCtrl.nearestOffice(order.address_deliver.location);
+        let nearestOffice = await officeCtrl.nearestOffice(order.address_deliver.location, order);
 
 
         let assignOrder = await officeCtrl.assignOrder(nearestOffice[0]._id, order);

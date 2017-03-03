@@ -51,6 +51,15 @@ const OfficeSchema = new Schema({
       type: Number
     }
   },
+  stockProducts: [{
+    product: {
+      type: Schema.Types.ObjectId, ref: 'Product'
+    },
+    stock: {
+      type: Number,
+      default: 1
+    }
+  }],
   status: {
     type: String
   }
