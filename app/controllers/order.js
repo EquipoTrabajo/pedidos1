@@ -17,10 +17,8 @@ module.exports.addOrder = (req, res, next) => {
 module.exports.store = async (req, res, next) => {
   Order.create(req.body)
     .then(async (order) => {
-      console.log('order emp in: ');
       try {
         let nearestOffice = await officeCtrl.nearestOffice(order.address_deliver.location);
-
 
 
         let assignOrder = await officeCtrl.assignOrder(nearestOffice[0]._id, order);
@@ -110,24 +108,6 @@ module.exports.setStatusOnHold = (id, office) => {
 module.exports.setStatusPacking = (order, office) => {
   const orderDistance = 1 /6371;
 
-  let getDistance = (lat1,lon1,lat2,lon2) => {
-    let R = 6371;
-    let dLat = deg2rad(lat2-lat1);
-    let dLon = deg2rad(lon2-lon1); 
-    let a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-      ; 
-    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    let d = R * c;
-    return d;
-  }
-
-  let deg2rad = (deg) => {
-    return deg * (Math.PI/180)
-  }
-
   let newOrder = {
     'order': order._id,
     'location': order.location,
@@ -141,26 +121,23 @@ module.exports.setStatusPacking = (order, office) => {
   }
 
   return new Promise((resolve, reject) => {
-    Package.findOne({'orders.location': {$near: coords, $maxDistance: orderDistance}}).exec()
-      .then(package => {
-        if (package && package.orders.length < 3) {
-          package.orders.push(newOrder);
-          let packageDistance = package.orders.reduce((x, y) => {
-            return getDistance(x.location[0], x.location[1], y.location[0], y.location[1]);
-          });
-          package.distance = packageDistance;
-        } else {
-          package = new Package({
-            'office': office._id,
-            'orders': newOrder
-          });
-        }
-        return Promise.all([package.save(), Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()]);
-      })
+    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
       .then(rslts => rslts)
       .catch(err => {
         return err;
       });
+  });
+}
+
+module.exports.setStatusDeliveringOnHold = (office) =>{
+  let status = {
+    name: 'En Espera para enviar',
+    time: office.packages.package.length / (office.settings.deliveryEmployees * office.settings.deliveryTime)
+  }
+  return new Promise((resolve, reject) => {
+    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
+      .then(order => resolve(order))
+      .catch(err => reject(err));
   });
 }
 

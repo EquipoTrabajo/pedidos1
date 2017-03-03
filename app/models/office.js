@@ -16,6 +16,10 @@ const OfficeSchema = new Schema({
       type: Number,
       default: 1
     },
+    deliveryTime: {
+      type: Number,
+      default: 1
+    },
     employeesNumber: {
       type: Number
     },
@@ -37,6 +41,11 @@ const OfficeSchema = new Schema({
       duration: {
         type: Number
       }
+    }],
+    packages: [{
+      package: {
+        type: Schema.Types.ObjectId, ref: 'Order'
+      },
     }],
     timeToFinish: {
       type: Number
