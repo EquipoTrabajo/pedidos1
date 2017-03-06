@@ -2,12 +2,12 @@ const Office = require('../models/office');
 const maxDistance = 20 /6371;
 const request = require('request');
 
-module.exports.nearestOffice = (coords, order) => {
+module.exports.nearestOffices = (coords, order) => {
   return new Promise((resolve, reject) => {
     Office.find({'location': {$near: coords, $maxDistance: maxDistance}, 'status': 'online'}).sort({'timeToFinish': -1}).exec()
-      .then((office) => {
+      .then((offices) => {
         
-        let officeWithProduct = office.filter(x => {
+        let officeWithProduct = offices.filter(x => {
           let flag = true;
           order.products.forEach(op => {
             if(x.stockProducts.findIdex(o => (o.product === op && o.stock > 0)) < 0){
@@ -92,9 +92,10 @@ module.exports.index = (req, res, next) => {
     })
 }
 
-module.exports.assignOrder = (id, order) => {
+module.exports.assignOrder = (nearestOffices, order) => {
   return new Promise((resolve, reject) => {
-    Office.findById(id).populate('wip.orders').exec()
+    let idNearestOffices = nearestOffices.map(x => x._id);
+    Office.find({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
       .then((office) => {
         office.wip.orders.order.push(order._id);
 
