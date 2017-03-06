@@ -2,6 +2,8 @@ const Office = require('../models/office');
 const Order = require('../models/order');
 const maxDistance = 20 /6371;
 const request = require('request');
+const GLOBAL_APPLY = false;
+const GLOBAL_TIME = 1800;
 
 /*module.exports.nearestOffices = (coords, order) => {
   return new Promise((resolve, reject) => {
@@ -132,7 +134,15 @@ module.exports.assignOrder = (req, res, next) => {
             office.wip.orders.duration = response.body.rows.elements.duration.value;
           }
         }
-        return office.save();
+        if (GLOBAL_APPLY) {
+          if ((GLOBAL_TIME < office.timeToFinish) && req.body.force === 0) {
+            return Promise.resolve({'message': 'El tiempo es mayor..' });
+          } else {
+            return office.save();
+          }
+        } else {
+          return office.save();
+        }
       });
     })
     .then(rslt => res.json(rslt))

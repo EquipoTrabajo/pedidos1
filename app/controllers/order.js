@@ -7,6 +7,7 @@ const request = require('request');
 
 
 
+
 module.exports.addOrder = (req, res, next) => {
   res.render('add-order', {'user': req.user});
 }
@@ -16,9 +17,6 @@ module.exports.store = async (req, res, next) => {
     .then(async (order) => {
       try {
         // let nearestOffices = await officeCtrl.nearestOffices(order.address_deliver.location, order);
-
-        
-
 
         // let assignOrder = await officeCtrl.assignOrder(nearestOffices, order);
         return res.json(order);
@@ -116,19 +114,20 @@ module.exports.setStatusPacking = (order, office) => {
 
   let status = {
     name: 'Empacando',
-    time: office.packTime
+    time: office.settings.packTime
   }
 
   return new Promise((resolve, reject) => {
-    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
-      .then(rslts => rslts)
-      .catch(err => {
-        return err;
-      });
+    Promise.all([
+      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
+      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.orders.order': order._id}}).exec()
+    ])
+      .then(rslts => resolve(rslts))
+      .catch(err => reject(err));
   });
 }
 
-module.exports.setStatusDeliveringOnHold = (office) =>{
+module.exports.setStatusDeliveringOnHold = (order, office) =>{
   let status = {
     name: 'En Espera para enviar',
     time: office.packages.package.length / (office.settings.deliveryEmployees * office.settings.deliveryTime)
@@ -146,9 +145,38 @@ module.exports.setStatusDelivering = (order, office, package) => {
     time: package.timeToFinish
   }
   return new Promise((resolve, reject) => {
+    Promise.all([
+      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
+      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.pacakges.package': package._id}})
+    ])
+      .then(order => resolve(order))
+      .catch(err => reject(err));
+  }); 
+}
+
+
+module.exports.setStatusComplete = (order, office, package) => {
+  let status = {
+    name: 'Completado'
+  }
+  return new Promise((resolve, reject) => {
     Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
       .then(order => resolve(order))
       .catch(err => reject(err));
   }); 
 }
 
+
+module.exports.setStatusCancelled = (order, office, package) => {
+  let status = {
+    name: 'Cancelado'
+  }
+  return new Promise((resolve, reject) => {
+    Promise.all([
+      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
+      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.orders.order': order._id}}).exec()
+    ])
+      .then(rslt => resolve(rslt))
+      .catch(err => reject(err));
+  }); 
+}

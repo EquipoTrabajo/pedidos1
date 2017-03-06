@@ -20,7 +20,7 @@ let deg2rad = (deg) => {
   return deg * (Math.PI/180)
 }
 
-module.exports.store = (order) => {
+module.exports.store = (order, office) => {
   const orderDistance = 1 /6371;
 
 
