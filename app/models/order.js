@@ -6,9 +6,20 @@ const OrderSchema = new Schema({
   client: {
     type: Schema.Types.ObjectId, ref: 'User'
   },
+  office: {
+    type: Schema.Types.ObjectId, ref: 'User'
+  },
   products: [{
-    type: Schema.Types.ObjectId, ref: 'Product'
+    product: {
+      type: Schema.Types.ObjectId, ref: 'Product'
+    },
+    cant: {
+      type: Number
+    }
   }],
+  amount: {
+    type: Number
+  },
   address_deliver: {
     name: {
       type: String

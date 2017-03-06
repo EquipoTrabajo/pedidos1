@@ -1,8 +1,9 @@
 const Office = require('../models/office');
+const Order = require('../models/order');
 const maxDistance = 20 /6371;
 const request = require('request');
 
-module.exports.nearestOffices = (coords, order) => {
+/*module.exports.nearestOffices = (coords, order) => {
   return new Promise((resolve, reject) => {
     Office.find({'location': {$near: coords, $maxDistance: maxDistance}, 'status': 'online'}).sort({'timeToFinish': -1}).exec()
       .then((offices) => {
@@ -24,7 +25,7 @@ module.exports.nearestOffices = (coords, order) => {
         reject(err);
       });
   });
-}
+}*/
 
 
 module.exports.setTimeToFinish = (id) => {
@@ -92,7 +93,57 @@ module.exports.index = (req, res, next) => {
     })
 }
 
-module.exports.assignOrder = (nearestOffices, order) => {
+
+module.exports.nearestOffices = (req, res, next) => {
+  Order.findById(req.params.id).exec()
+    .then(order => {
+      Office.find({'location': {$near: order.address_deliver.location, $maxDistance: maxDistance}, 'status': 'online'}).sort({'timeToFinish': -1}).exec()
+        .then((offices) => {
+          
+          let officeWithProduct = offices.filter(x => {
+            let flag = true;
+            order.products.forEach(op => {
+              if(x.stockProducts.findIdex(o => (o.product === op && o.stock > 0)) < 0){
+                flag = false;
+              }
+            });
+            if (flag) {
+              return x;
+            }
+          });
+          return res.json(officeWithProduct);
+        })
+    })
+    .catch((err) => {
+      return next(err);
+    });
+}
+
+module.exports.assignOrder = (req, res, next) => {
+  Office.find({'_id': req.params.idOffice, 'status': 'online'}).populate('wip.orders').exec()
+    .then((office) => {
+      office.wip.orders.order.push(req.params.idOrder);
+
+      let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + order.location[0] + ',' + order.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+      request(urlRequest, (err, response) => {
+        if (response.body.status === 'OK') {
+          if (respose.body.rows.elements.status === 'OK') {
+            office.wip.orders.distance = response.body.rows.elements.distance.value;
+            office.wip.orders.duration = response.body.rows.elements.duration.value;
+          }
+        }
+        return office.save();
+      });
+    })
+    .then(rslt => res.json(rslt))
+    .catch((err) => {
+      return next(err);
+    });
+}
+
+
+
+/*module.exports.assignOrder = (nearestOffices, order) => {
   return new Promise((resolve, reject) => {
     let idNearestOffices = nearestOffices.map(x => x._id);
     Office.find({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
@@ -116,3 +167,4 @@ module.exports.assignOrder = (nearestOffices, order) => {
       });
   }); 
 }
+*/

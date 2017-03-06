@@ -15,11 +15,13 @@ module.exports.store = async (req, res, next) => {
   Order.create(req.body)
     .then(async (order) => {
       try {
-        let nearestOffices = await officeCtrl.nearestOffices(order.address_deliver.location, order);
+        // let nearestOffices = await officeCtrl.nearestOffices(order.address_deliver.location, order);
+
+        
 
 
-        let assignOrder = await officeCtrl.assignOrder(nearestOffices, order);
-        return res.json({assignOrder, order});
+        // let assignOrder = await officeCtrl.assignOrder(nearestOffices, order);
+        return res.json(order);
 
       } catch(e) {
         return next(e);
