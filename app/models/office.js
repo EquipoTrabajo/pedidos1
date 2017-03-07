@@ -62,6 +62,9 @@ const OfficeSchema = new Schema({
   }],
   status: {
     type: String
+  },
+  currency: {
+    type: String
   }
 }, {discriminatorKey: 'type'});
 

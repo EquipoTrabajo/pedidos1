@@ -1,6 +1,6 @@
 const Office = require('../models/office');
 const Order = require('../models/order');
-const maxDistance = 20 /6371;
+const maxDistance = 80 /6371;
 const request = require('request');
 const GLOBAL_APPLY = false;
 const GLOBAL_TIME = 1800;
@@ -97,10 +97,12 @@ module.exports.index = (req, res, next) => {
 
 
 module.exports.nearestOffices = (req, res, next) => {
-  Order.findById(req.params.id).exec()
+  Order.findById(req.params.idOrder).exec()
     .then(order => {
       Office.find({'location': {$near: order.address_deliver.location, $maxDistance: maxDistance}, 'status': 'online'}).sort({'timeToFinish': -1}).exec()
         .then((offices) => {
+          console.log('inside nearestOffices');
+          console.log('offices: ', offices);
           
           let officeWithProduct = offices.filter(x => {
             let flag = true;
@@ -113,7 +115,14 @@ module.exports.nearestOffices = (req, res, next) => {
               return x;
             }
           });
-          return res.json(officeWithProduct);
+          // return res.json(officeWithProduct);
+          if (order.products.length > 0) {
+            req.nearestOffices = officeWithProduct;
+          } else {
+            req.nearestOffices = offices;
+          }
+          console.log('nearestOffices: ', req.nearestOffices);
+          next();
         })
     })
     .catch((err) => {
@@ -122,9 +131,16 @@ module.exports.nearestOffices = (req, res, next) => {
 }
 
 module.exports.assignOrder = (req, res, next) => {
-  Office.find({'_id': req.params.idOffice, 'status': 'online'}).populate('wip.orders').exec()
-    .then((office) => {
-      office.wip.orders.order.push(req.params.idOrder);
+  console.log('in assignOrder');
+  console.log(JSON.stringify(req.nearestOffices, null, ' '));
+  let idNearestOffices = req.nearestOffices.map(x => x._id);
+  console.log('idno: ', idNearestOffices);
+  Office.find({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
+    .then(office => {
+      office.wip.orders.push(
+        {
+          'order': req.params.idOrder //TODO distance, duration
+        });
 
       let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + order.location[0] + ',' + order.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
       request(urlRequest, (err, response) => {
