@@ -65,4 +65,4 @@ const OfficeSchema = new Schema({
   }
 }, {discriminatorKey: 'type'});
 
-const Office = module.exports = User.discriminator('Office', OfficeSchema);
+const Office = module.exports = User.discriminator('office', OfficeSchema);

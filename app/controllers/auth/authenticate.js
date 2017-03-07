@@ -8,11 +8,20 @@ module.exports.authenticate = (email, password) => {
     User.findOne({'email': email}).exec()
       .then((user) => {
         if (user) {
-          let payload = {
-            id: user._id
-          };
-          let token = jwt.encode(payload, cfg.jwt.secret);
-          resolve(token);
+          user.comparePassword(password, (err, isMatch) => {
+            if (err) {
+              reject(err);
+            }
+            if (!isMatch) { resolve(null);}
+            let payload = {
+              id: user._id,
+              name: user.name,
+              email: user.email,
+              type: user.type
+            };
+            let token = jwt.encode(payload, cfg.jwt.secret);
+            resolve(token);
+          });
         } else {
           resolve(null);
         }

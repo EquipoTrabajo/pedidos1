@@ -6,23 +6,15 @@ const ExtractJwt = passportJWT.ExtractJwt;
 const Strategy = passportJWT.Strategy;  
 const params = {  
     secretOrKey: cfg.jwt.secret,
-    jwtFromRequest: (req) =>  {
+    jwtFromRequest: ExtractJwt.fromHeader('token-jwt')
+    /*jwtFromRequest: (req) =>  {
       var token = null;
       if (req && req.cookies)
       {
           token = req.cookies['token'];
       }
       return token;
-    }
-};
-
-var cookieExtractor = function(req) {
-    var token = null;
-    if (req && req.cookies)
-    {
-        token = req.cookies['token'];
-    }
-    return token;
+    }*/
 };
 
 module.exports = function() {  
@@ -30,7 +22,12 @@ module.exports = function() {
     User.findById(payload.id).exec()
       .then((user) => {
         if (user) {
-          return done(null, user);
+          console.log(JSON.stringify(user, null, ' '));
+          // if ((role !== 'all') && (user.type === role)) {
+            return done(null, user);
+          // } else {
+            // return done(new Error('No Autorizado'), null);
+          // }
         } else {
           return done(new Error("User not found"), null);
         }

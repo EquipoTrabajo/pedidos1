@@ -2,27 +2,38 @@ const Product = require('../models/product');
 const Office = require('../models/office');
 
 module.exports.store = (req, res, next) => {
-  Product.create(req.body)
-    .then((product) => {
-      return Office.findByIdAndUpdate(req.user._id, {$push: {'stockProducts': product._id}}).exec();
+  Promise.all([
+    Product.create(req.body), 
+    Office.findById(req.user._id).exec()
+  ])
+    .then(rslt => {
+      let product = rslt[0];
+      let office = rslt[1];
+      office.stockProducts.push({'product': product._id, 'stock': req.body.stock});
+      if (office.type === 'office') {
+        product.status = 'local';
+      } else {
+        product.satus = 'global';
+      }
+      return Promise.all([office.save(), product.save()]);
     })
     .then(rslt => res.json(rslt))
-    .catch((err) => {
-      return next(err);
-    });
+    .catch(err => res.json(err));
 }
 
 module.exports.addStock = (req, res, next) => {
   Promise.all([
     Product.findById(req.params.id).exec(),
-    Office.findById(req.user.id).exec()
+    Office.findById(req.user._id).exec()
   ])
     .then(rslt => {
-      rslt[0].stock = req.body.stock;
-      rslt[1].stockProducts[rslt[1].stockProducts.findIndex(o => o.product === req.params.id)].stock = req.body.stock;
+      let product = rslt[0];
+      let office = rslt[1];
+      product.stock = req.body.stock;
+      office.stockProducts[office.stockProducts.findIndex(o => o.product === req.params.id)].stock = req.body.stock;
       return Promise.all([
-        rslt[0].save(),
-        rslt[1].save()
+        product.save(),
+        office.save()
       ]);
     })
     .then(rslt => res.json(rslt))

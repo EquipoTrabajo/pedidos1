@@ -9,12 +9,17 @@ const auth = require('./auth/authenticate');
 module.exports.login = (req, res, next) => {
   auth.authenticate(req.body.email, req.body.password)
     .then((token) => {
-      //return res.cookie('token', token);
-      // return res.json({token: token});
-      return res.render('session', {'token': token});
+      if (token) {
+        //return res.cookie('token', token);
+        return res.json({token: token});
+        // return res.render('session', {'token': token});
+      } else {
+        return res.json({'err': 'Email y clave no coinciden'});
+      }
     })
     .catch((err) => {
-      return next(err);
+      // return next(err);
+      return res.json(err);
     });
 }
 
