@@ -118,10 +118,11 @@ module.exports.nearestOffices = (req, res, next) => {
           // return res.json(officeWithProduct);
           if (order.products.length > 0) {
             req.nearestOffices = officeWithProduct;
+            req.order = order;
           } else {
             req.nearestOffices = offices;
+            req.order = order;
           }
-          console.log('nearestOffices: ', req.nearestOffices);
           next();
         })
     })
@@ -132,32 +133,38 @@ module.exports.nearestOffices = (req, res, next) => {
 
 module.exports.assignOrder = (req, res, next) => {
   console.log('in assignOrder');
-  console.log(JSON.stringify(req.nearestOffices, null, ' '));
+  // console.log(JSON.stringify(req.nearestOffices, null, ' '));
   let idNearestOffices = req.nearestOffices.map(x => x._id);
-  console.log('idno: ', idNearestOffices);
-  Office.find({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
-    .then(office => {
-      office.wip.orders.push(
+  Office.findOne({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
+    .then(offices => {
+      /*office.wip.orders.push(
         {
-          'order': req.params.idOrder //TODO distance, duration
-        });
+          'order': req.params.idOrder
+        });*/
 
-      let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + order.location[0] + ',' + order.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+      let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + offices.location[0] + ',' + offices.location[1] + '&destinations=' + req.order.address_deliver.location[0] + ',' + req.order.address_deliver.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
       request(urlRequest, (err, response) => {
-        if (response.body.status === 'OK') {
-          if (respose.body.rows.elements.status === 'OK') {
-            office.wip.orders.distance = response.body.rows.elements.distance.value;
-            office.wip.orders.duration = response.body.rows.elements.duration.value;
+        let distanceMatrixBody = JSON.parse(response.body);
+        if (distanceMatrixBody.status === 'OK') {
+          if (distanceMatrixBody.rows[0].elements[0].status === 'OK') {
+            offices.wip.orders.push(
+            {
+              'order': req.params.idOrder,
+              'distance': distanceMatrixBody.rows[0].elements[0].distance.value,
+              'duration': distanceMatrixBody.rows[0].elements[0].duration.value
+            });
+            // office.wip.orders.distance = response.body.rows.elements.distance.value;
+            // office.wip.orders.duration = response.body.rows.elements.duration.value;
           }
         }
         if (GLOBAL_APPLY) {
-          if ((GLOBAL_TIME < office.timeToFinish) && req.body.force === 0) {
+          if ((GLOBAL_TIME < offices.timeToFinish) && req.body.force === 0) {
             return Promise.resolve({'message': 'El tiempo es mayor..' });
           } else {
-            return office.save();
+            return offices.save();
           }
         } else {
-          return office.save();
+          return offices.save();
         }
       });
     })

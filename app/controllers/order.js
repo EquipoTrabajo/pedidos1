@@ -12,18 +12,10 @@ module.exports.addOrder = (req, res, next) => {
   res.render('add-order', {'user': req.user});
 }
 
-module.exports.store = async (req, res, next) => {
+module.exports.store = (req, res, next) => {
   Order.create(req.body)
-    .then(async (order) => {
-      // try {
-        // let nearestOffices = await officeCtrl.nearestOffices(order.address_deliver.location, order);
-
-        // let assignOrder = await officeCtrl.assignOrder(nearestOffices, order);
-        return res.json(order);
-
-      // } catch(e) {
-        // return next(e);
-      // }
+    .then((order) => {
+      return res.json(order);
     })
     .catch((err) => {
       return next(err);

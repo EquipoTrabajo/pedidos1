@@ -61,7 +61,8 @@ const OfficeSchema = new Schema({
     }
   }],
   status: {
-    type: String
+    type: String,
+    default: 'online'
   },
   currency: {
     type: String
