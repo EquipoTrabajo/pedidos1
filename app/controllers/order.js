@@ -13,6 +13,7 @@ module.exports.addOrder = (req, res, next) => {
 }
 
 module.exports.store = (req, res, next) => {
+  req.body.client = req.user._id;
   Order.create(req.body)
     .then((order) => {
       return res.json(order);
@@ -31,6 +32,36 @@ module.exports.update = (req, res, next) => {
     .catch((err) => {
       return next(err);
     });
+}
+
+
+module.exports.addProduct = (req, res, next) => {
+  Order.findById(req.params.idOrder).exec()
+    .then(order => {
+      if (order.products.findIndex(o => o.product === req.params.idProduct) >= 0) {
+        order.products[order.products.findIndex(o => o.product === req.params.idProduct)].cant += req.body.cant;
+      } else {
+        order.products.push({
+          'product': req.params.idProduct,
+          'cant': req.body.cant
+        });
+      }
+      return order.save();
+    })
+    .then(rslt => res.json(rslt))
+    .catch(err => next(err));
+}
+
+module.exports.payOrder = (req, res, next) => {
+  Order.findByIdAndUpdate(req.params.idOrder, {$push: {'payment': req.body}}).exec()
+    .then(rslt => res.json(rslt))
+    .catch(err => nex(err));
+}
+
+module.exports.showClientOrders = (req, res, next) => {
+  Order.find({'office': req.params.idClient}).exec()
+    .then(orders => res.json(orders))
+    .catch(err => next(err));
 }
 
 module.exports.show = (req, res, next) => {

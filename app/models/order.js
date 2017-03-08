@@ -20,8 +20,20 @@ const OrderSchema = new Schema({
   amount: {
     type: Number
   },
-  paymentMethod: {
-    type: String
+  payment: {
+    method: {
+      type: String
+    },
+    type: {
+      type: String
+    },
+    currency: {
+      type: String
+    },
+    created_at: {
+      type: Date,
+      default: Date.now
+    }
   },
   address_deliver: {
     name: {
