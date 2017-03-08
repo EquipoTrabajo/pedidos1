@@ -2,6 +2,7 @@ const Office = require('../models/office');
 const Order = require('../models/order');
 const maxDistance = 80 /6371;
 const request = require('request');
+const requestretry = require('requestretry');
 const GLOBAL_APPLY = false;
 const GLOBAL_TIME = 1800;
 
@@ -101,8 +102,6 @@ module.exports.nearestOffices = (req, res, next) => {
     .then(order => {
       Office.find({'location': {$near: order.address_deliver.location, $maxDistance: maxDistance}, 'status': 'online'}).sort({'timeToFinish': -1}).exec()
         .then((offices) => {
-          console.log('inside nearestOffices');
-          console.log('offices: ', offices);
           
           let officeWithProduct = offices.filter(x => {
             let flag = true;
@@ -123,8 +122,23 @@ module.exports.nearestOffices = (req, res, next) => {
             req.nearestOffices = offices;
             req.order = order;
           }
-          next();
+          if (officeWithProduct.length > 0) {
+            next();
+          } else {
+            Office.find({'location': {$near: order.address_deliver.location, $maxDistance: maxDistance}}).sort({'timeToFinish': -1}).exec()
+              .then(office => {
+                if (office.length > 0) {
+                  order.currentState = 'offline';
+                } else {
+                  order.currentState = 'No encontrado';
+                }
+                return order.save();
+              })
+              .then(rslt => res.json(rslt))
+              .catch(err => next(err));
+          }
         })
+        .catch(err => next(err));
     })
     .catch((err) => {
       return next(err);
@@ -132,18 +146,13 @@ module.exports.nearestOffices = (req, res, next) => {
 }
 
 module.exports.assignOrder = (req, res, next) => {
-  console.log('in assignOrder');
-  // console.log(JSON.stringify(req.nearestOffices, null, ' '));
   let idNearestOffices = req.nearestOffices.map(x => x._id);
-  Office.findOne({'_id': {$in: idNearestOffices}, 'status': 'online'}).populate('wip.orders').exec()
+  Office.find({'_id': {$in: idNearestOffices}, 'status': 'online'}).sort({'timeToFinish': 1}).populate('wip.orders').exec()
     .then(offices => {
-      /*office.wip.orders.push(
-        {
-          'order': req.params.idOrder
-        });*/
+      
+      /*request(urlRequest, (err, response) => {
+        if (err) next(err);
 
-      let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + offices.location[0] + ',' + offices.location[1] + '&destinations=' + req.order.address_deliver.location[0] + ',' + req.order.address_deliver.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
-      request(urlRequest, (err, response) => {
         let distanceMatrixBody = JSON.parse(response.body);
         if (distanceMatrixBody.status === 'OK') {
           if (distanceMatrixBody.rows[0].elements[0].status === 'OK') {
@@ -153,20 +162,56 @@ module.exports.assignOrder = (req, res, next) => {
               'distance': distanceMatrixBody.rows[0].elements[0].distance.value,
               'duration': distanceMatrixBody.rows[0].elements[0].duration.value
             });
-            // office.wip.orders.distance = response.body.rows.elements.distance.value;
-            // office.wip.orders.duration = response.body.rows.elements.duration.value;
           }
-        }
-        if (GLOBAL_APPLY) {
-          if ((GLOBAL_TIME < offices.timeToFinish) && req.body.force === 0) {
-            return Promise.resolve({'message': 'El tiempo es mayor..' });
+          if (GLOBAL_APPLY) {
+            if ((GLOBAL_TIME < offices.timeToFinish) && req.body.force === 0) {
+              return Promise.resolve({'message': 'El tiempo es mayor..' });
+            } else {
+              return offices.save();
+            }
           } else {
             return offices.save();
           }
         } else {
-          return offices.save();
+          return Promise.resolve({'message': 'Ha un ocurrido un problema al conectarse a la api de google'});
         }
-      });
+      });*/
+      
+      for(let i = 0; i < offices.length; i++) {
+        let office = offices[i];
+        let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + req.order.address_deliver.location[0] + ',' + req.order.address_deliver.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
+
+        requestretry({
+          url: urlRequest,
+          json:true,
+          maxAttempts: 3,
+          retryDelay: 5000,
+          fullResponse: false
+        })
+          .then(response => {
+            let distanceMatrixBody = response;
+            if (distanceMatrixBody.status === 'OK') {
+              if (distanceMatrixBody.rows[0].elements[0].status === 'OK') {
+                office.wip.orders.push(
+                {
+                  'order': req.params.idOrder,
+                  'distance': distanceMatrixBody.rows[0].elements[0].distance.value,
+                  'duration': distanceMatrixBody.rows[0].elements[0].duration.value
+                });
+              }
+              if (GLOBAL_APPLY && ((GLOBAL_TIME < office.timeToFinish) && req.body.force === 0)) {
+                return Promise.resolve({'message': 'El tiempo es mayor..' });
+              } else {
+               if (office.stockProducts.findIndex(o => o.product === order._id && o.stock > 0) >= 0) {
+                  return offices.save();
+                } else if (offices.length >= i+1 ){
+                  return Promise.resolve({'message': 'no se pudo asignar a una tienda'});
+                }
+              }
+            }
+          })
+          .catch(err => next(err));
+        } //end of for
     })
     .then(rslt => res.json(rslt))
     .catch((err) => {
