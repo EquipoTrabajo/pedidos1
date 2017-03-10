@@ -1,5 +1,6 @@
 const Order = require('../models/order');
 const Office = require('../models/office');
+const Product = require('../models/product');
 const Package = require('../models/package');
 const officeCtrl = require('../controllers/office');
 const maxDistance = 200 /6371;
@@ -36,28 +37,48 @@ module.exports.update = (req, res, next) => {
 
 
 module.exports.addProduct = (req, res, next) => {
-  Order.findById(req.params.idOrder).exec()
-    .then(order => {
+  Promise.all([
+    Product.findById(req.params.idProduct).exec(),
+    Order.findById(req.params.idOrder).exec()
+  ])
+    .then(rslts => {
+      let product = rslts[0];
+      let order = rslts[1];
       if (order.products.findIndex(o => o.product === req.params.idProduct) >= 0) {
-        order.products[order.products.findIndex(o => o.product === req.params.idProduct)].cant += req.body.cant;
+        order.products[order.products.findIndex(o => o.product === req.params.idProduct)].cant = req.body.cant;
       } else {
         order.products.push({
           'product': req.params.idProduct,
+          'price': product.price,
           'cant': req.body.cant
         });
       }
+
+      let amount = order.products.map(x => x.price * x.cant).reduce((x, y) => x+y);
+      console.log('amount: ', amount);
+      order.amount = amount;
       return order.save();
     })
     .then(rslt => res.json(rslt))
     .catch(err => next(err));
 }
 
-module.exports.payOrder = (req, res, next) => {
-  Order.findByIdAndUpdate(req.params.idOrder, {$push: {'payment': req.body}}).exec()
-    .then(rslt => res.json(rslt))
+/*module.exports.order = (req, res, next) => {
+  Order.findById(req.params.idOrder).exec()
+    .then(order => {
+      order.payment.method = req.body.paymentMethod;
+      order.payment.type = req.body.paymentType;
+      order.payment.currency = req.body.currency;
+
+      return Promise.all([
+        order.save(),
+        statusOnhold(order._id, order.office)
+      ]);
+    })
+    .then(rslts => res.json(rslts))
     .catch(err => nex(err));
 }
-
+*/
 module.exports.showClientOrders = (req, res, next) => {
   Order.find({'office': req.params.idClient}).exec()
     .then(orders => res.json(orders))
@@ -74,50 +95,28 @@ module.exports.show = (req, res, next) => {
     });
 }
 
-
-module.exports.changeStatus = (req, res, next) => {
-  /*Order.findById(req.params.id).exec()
-    .then(order => {
-      Office.findById(req.params.idOffice).populate('wip.orders').exec()
-        .then(office => {
-          // let ordersLocations = office.wip.orders.map(x => x.address_deliver.location).reduce((x, y) => x + '|' + y);
-          let urlRequest = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=' + office.location[0] + ',' + office.location[1] + '&destinations=' + order.location[0] + ',' + order.location[1] + '&key=AIzaSyCwcvDpKLJLFTmE_-GaeS4e52BdzcKW5wY';
-          request(urlRequest, (err, response) => {
-            if (order.state.name === 'En Espera') {
-              order.state.name = 'Empacando';
-              if (response.body.status === 'OK') {
-                if (respose.body.rows.elements.status === 'OK') {
-                  office.wip.timeToFinish += response.body.rows.elements.distance.value/60;
-                }
-              }
-              office.wip.timeToFinish += office.packTime;
-            } else if (order.state.name === 'Empacando') {
-              office.wip.timeToFinish -= office.packTime;
-              order.state.name = 'Enviando';
-            }
-            return Promise.all([order.save(), office.save()]);
-          });
-        });
-    })
-    .then(rslts => {
-      return res.json(rslts);
-    })
-    .catch(err => {
-      next(err);
-    });*/
+module.exports.pack = (req, res, next) => {
+  
 }
 
-
-module.exports.setStatusOnHold = (id, office) => {
-  let cantOrders = office.wip.orders.length;
-  let status = {
-    name: 'En Espera',
-    time: office.packTime * (cantOrders/office.settings.packingEmployees)
-  }
+module.exports.setStatusOnHold = (idOrder, idOffice) => {
   return new Promise((resolve, reject) => {
-    Order.findById(id).exec()
-      .then(order => {
+    Promise.all([
+      Order.findById(idOrder).exec(),
+      Office.findById(idOffice).exec()
+    ])
+      .then(rslts => {
+        let order = rslts[0];
+        let office = rslts[1];
+
+        let cantOrders = office.wip.orders.length;
+        let status = {
+          name: 'En Espera',
+          time: Math.floor(office.settings.packTime * (cantOrders/office.settings.packingEmployees))
+        }
+
         order.state.push(status);
+        order.currentState = 'En Espera';
         return order.save();
       })
       .then(rslt => resolve(rslt))

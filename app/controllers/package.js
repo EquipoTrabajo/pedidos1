@@ -1,4 +1,6 @@
 const Package = require('../models/package');
+const Order = require('../models/order');
+const Office = require('../models/office');
 const request = require('request');
 
 
@@ -20,8 +22,21 @@ let deg2rad = (deg) => {
   return deg * (Math.PI/180)
 }
 
-module.exports.store = (order, office) => {
+module.exports.store = (req, res, next) => {
   const orderDistance = 1 /6371;
+
+  Order.findById(req.params.idOrder).exec()
+    .then(order => {
+      return Promise.all([
+        Office.findById(order.office).exec(),
+        Promise.resolve(order)
+      ]);
+    })
+    /*.then(rslts => {
+      let office =
+    })*/
+
+
 
 
   package = new Package({

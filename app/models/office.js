@@ -42,6 +42,20 @@ const OfficeSchema = new Schema({
         type: Number
       }
     }],
+    messages: [{
+      order: {
+        type: Schema.Types.ObjectId, ref: 'Order'
+      },
+      from: {
+        type: Schema.Types.ObjectId, ref: 'User'
+      },
+      to: {
+        type: Schema.Types.ObjectId, ref: 'User'
+      },
+      content: {
+        type: String
+      }
+    }],
     packages: [{
       package: {
         type: Schema.Types.ObjectId, ref: 'Order'
@@ -58,6 +72,12 @@ const OfficeSchema = new Schema({
     stock: {
       type: Number,
       default: 1
+    },
+    price: {
+      type: Number
+    },
+    currency: {
+      type: Number
     }
   }],
   status: {

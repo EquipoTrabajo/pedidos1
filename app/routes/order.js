@@ -13,8 +13,10 @@ module.exports = function (app) {
 
 router.get('/order', orderCtrl.addOrder);
 
-router.post('/order', dc.convert, orderCtrl.store);
+router.post('/order', auth.authenticate('client'), dc.convert, orderCtrl.store);
 
 router.post('/assign/:idOrder', officeCtrl.nearestOffices, officeCtrl.assignOrder);
+
+router.put('/order/:idOrder/product/:idProduct/add', auth.authenticate('client'), orderCtrl.addProduct);
 
 

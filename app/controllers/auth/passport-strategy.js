@@ -22,7 +22,6 @@ module.exports = function() {
     User.findById(payload.id).exec()
       .then((user) => {
         if (user) {
-          console.log(JSON.stringify(user, null, ' '));
           // if ((role !== 'all') && (user.type === role)) {
             return done(null, user);
           // } else {

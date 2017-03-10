@@ -12,6 +12,6 @@ module.exports = function (app) {
 
 router.post('/product', auth.authenticate('office'), productCtrl.store);
 
-router.post('/product/:id', auth.authenticate('office'), productCtrl.update);
+router.put('/product/:id', auth.authenticate('office'), productCtrl.update);
 
 router.get('/product/:id', productCtrl.show);

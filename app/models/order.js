@@ -9,9 +9,26 @@ const OrderSchema = new Schema({
   office: {
     type: Schema.Types.ObjectId, ref: 'User'
   },
+  officeReview: {
+    flavor: {
+      type: Number
+    },
+    preparation: {
+      type: Number
+    },
+    delivery: {
+      type: Number
+    }
+  },
+  clientReview: {
+    type: Number
+  },
   products: [{
     product: {
       type: Schema.Types.ObjectId, ref: 'Product'
+    },
+    price: {
+      type: Number
     },
     cant: {
       type: Number
