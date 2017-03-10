@@ -15,7 +15,7 @@ module.exports.setTimeToFinish = (id) => {
   return new Promise((resolve, reject) => {
     Office.findById(id).populate(['wip.orders.order', 'wip.packages.package']).exec()
       .then(office => {
-        let ordersTime = office.packTime * (office.wip.orders.length / office.settings.packingEmployees);
+        let ordersTime = office.settings.packTime * (office.wip.orders.length / office.settings.packingEmployees);
         let packagesTime = office.wip.packages.reduce((x, y) => {
           return x.package.timeToFinish + y.package.timeToFinish;
         });

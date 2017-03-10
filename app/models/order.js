@@ -72,6 +72,9 @@ const OrderSchema = new Schema({
     time: {
       type: Number
     },
+    estimatedTime: {
+      type: Number
+    },
     created_at: {
       type: Date,
       default: Date.now

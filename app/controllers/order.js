@@ -95,10 +95,6 @@ module.exports.show = (req, res, next) => {
     });
 }
 
-module.exports.pack = (req, res, next) => {
-  
-}
-
 module.exports.setStatusOnHold = (idOrder, idOffice) => {
   return new Promise((resolve, reject) => {
     Promise.all([
@@ -112,11 +108,11 @@ module.exports.setStatusOnHold = (idOrder, idOffice) => {
         let cantOrders = office.wip.orders.length;
         let status = {
           name: 'En Espera',
-          time: Math.floor(office.settings.packTime * (cantOrders/office.settings.packingEmployees))
+          estimatedTime: Math.floor(office.settings.packTime * (cantOrders/office.settings.packingEmployees))
         }
 
         order.state.push(status);
-        order.currentState = 'En Espera';
+        order.currentState = status.name;
         return order.save();
       })
       .then(rslt => resolve(rslt))
@@ -125,24 +121,20 @@ module.exports.setStatusOnHold = (idOrder, idOffice) => {
 }
 
 module.exports.setStatusPacking = (order, office) => {
-  const orderDistance = 1 /6371;
-
-  let newOrder = {
-    'order': order._id,
-    'location': order.location,
-    'distance': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].distance,
-    'duration': office.wip.orders[office.wip.orders.findIndex(o => o.order === order._id)].duration
-  }
-
+  
   let status = {
     name: 'Empacando',
-    time: office.settings.packTime
+    estimatedTime: office.settings.packTime
   }
 
   return new Promise((resolve, reject) => {
+    order.state.push(status);
+    order.currentState = status.name;
+
+    office.wip.orders.pull({'order': order._id});
     Promise.all([
-      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
-      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.orders.order': order._id}}).exec()
+      order.save(),
+      office.save()
     ])
       .then(rslts => resolve(rslts))
       .catch(err => reject(err));
