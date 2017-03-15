@@ -29,14 +29,6 @@ const UserSchema = new Schema({
       type: String
     }
   },
-  coord: {
-    x: {
-      type: String
-    },
-    y: {
-      type: String
-    }
-  },
   created_at: {
     type: Date, 
     default: Date.now

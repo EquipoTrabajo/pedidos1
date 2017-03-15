@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Client = require('../models/client');
 
+const stripe = require('stripe')('sk_test_KPWOO7KXnucElF9fTEfB6dsh');
+
 
 module.exports.store = (req, res, next) => {
   Client.create(req.body)
@@ -60,3 +62,45 @@ module.exports.show = (req, res, next) => {
       return next(err);
     });
 }
+
+
+module.exports.saveCardToken = (req, res, next) => {
+
+  //for testing purpose
+  stripe.tokens.create({
+  card: {
+    "number": '4242424242424242',
+      "exp_month": 12,
+      "exp_year": 2018,
+      "cvc": '123'
+    }
+  })
+  .then(response => {
+    console.log('response: ', JSON.stringify(response, null, ' '));
+    return stripe.customers.create({
+      description: 'testing',
+      source: response.id
+    });
+  })
+  .then(customer => {
+    console.log('customer: ', JSON.stringify(customer, null, ' '));
+    return Client.findByIdAndUpdate(req.user._id, {'customerID': customer.id}).exec();
+  })
+  .then(rslt => res.json(rslt))
+  .catch(err => next(err));
+  //end for testing purpose
+  
+  //uncomment when created front-end
+  /*let stripeToken = req.body.stripeToken;
+  stripe.customers.create({
+    description: req.body.description,
+    source: stripeToken
+  })
+  .then(customer => {
+    Client.findByIdAndUpdate(req.user._id, {'customerID': customer.id}).exec();
+  })
+  .then(rslt => res.json(rslt))
+  .catch(err => next(err));*/
+}
+
+

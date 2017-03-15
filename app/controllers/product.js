@@ -1,6 +1,7 @@
 const Product = require('../models/product');
 const Office = require('../models/office');
 
+
 module.exports.store = (req, res, next) => {
   Promise.all([
     Product.create(req.body), 

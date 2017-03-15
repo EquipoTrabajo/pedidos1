@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 const PackageSchema = new Schema({
   office: {
     id: {
-      type: Schema.Types.ObjectId, ref: 'Order'
+      type: Schema.Types.ObjectId, ref: 'User'
     },
     location: {
       type: [Number],

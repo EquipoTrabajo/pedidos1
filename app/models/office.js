@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 
 const OfficeSchema = new Schema({
   cod: {
-    type: Number
+    type: String
   },
   location: {
     type: [Number],

@@ -25,6 +25,7 @@ let deg2rad = (deg) => {
   return deg * (Math.PI/180)
 }
 
+//está función crea o actualiza un paquete dependiendo de las condiciones.
 module.exports.store = (req, res, next) => {
   const orderDistance = 1 /6371;
 
@@ -60,11 +61,11 @@ module.exports.store = (req, res, next) => {
         });
       }
 
-      return Promise.all([
-        package.save(),
-        orderCtrl.setStatusPacking(order, office)
-      ]);
+      return package.save();
 
+    })
+    .then(package => {
+      return orderCtrl.setStatusPacking(order, office, package);
     })
     .then(rslt => res.json(rslt))
     .catch(err => next(err));

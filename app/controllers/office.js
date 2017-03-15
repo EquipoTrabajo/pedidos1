@@ -97,14 +97,14 @@ module.exports.nearestOffices = (req, res, next) => {
       let order = rslts[0];
       let offices = rslts[1];
 
-      // console.log('offices near: ', JSON.stringify(offices, null, ' '));
+      console.log('offices near: ', JSON.stringify(offices, null, ' '));
       // console.log('orders near: ', JSON.stringify(order, null, ' '));
 
 
       let officeWithProduct = offices.filter(x => {
         let flag = true;
         order.products.forEach(op => {
-          if((x.stockProducts.findIndex(o => (o.product.toString() === op.product.toString() && o.stock > op.cant)) < 0) || (x.status !== 'online')){
+          if((x.stockProducts.findIndex(o => {console.log(o.product.toString() + '===' + op.product.toString() + '&&' + o.stock + '>' + op.cant); return (o.product.toString() === op.product.toString() && o.stock > op.cant)}) < 0) || (x.status.toString() !== 'online')){
             flag = false;
           }
         });
@@ -215,6 +215,21 @@ module.exports.assignOrder = (req, res, next) => {
         return orderCtrl.setStatusOnHold(order._id, office._id);
       } else {
         return res.json(rslt);
+      }
+    })
+    .then(rslt => res.json(rslt))
+    .catch(err => next(err));
+}
+
+
+module.exports.review = (req, res, next) => {
+  Order.findById(req.params.idOrder).exec()
+    .then(order => {
+      if (order.client.toString() === req.user._id.toString()) {
+        order.officeReview.push(req.body);
+        return order.save();
+      } else {
+        return Promise.resolve({'message': 'El pedido no corresponde a este cliente'});
       }
     })
     .then(rslt => res.json(rslt))

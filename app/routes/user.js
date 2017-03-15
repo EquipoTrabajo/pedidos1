@@ -22,7 +22,9 @@ router.post('/office', dc.convert, officeCtrl.store);
 
 router.post('/login', userCtrl.login);
 
+
 router.use(auth.authenticate());
+router.post('/client/card', clientCtrl.saveCardToken);
 
 // router.get('/privatetest', userCtrl.privatetest);
 

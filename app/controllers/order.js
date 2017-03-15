@@ -1,10 +1,14 @@
 const Order = require('../models/order');
 const Office = require('../models/office');
 const Product = require('../models/product');
+const Client = require('../models/client');
 const Package = require('../models/package');
 const officeCtrl = require('../controllers/office');
 const maxDistance = 200 /6371;
 const request = require('request');
+
+const stripe = require('stripe')('sk_test_KPWOO7KXnucElF9fTEfB6dsh');
+
 
 
 
@@ -55,7 +59,6 @@ module.exports.addProduct = (req, res, next) => {
       }
 
       let amount = order.products.map(x => x.price * x.cant).reduce((x, y) => x+y);
-      console.log('amount: ', amount);
       order.amount = amount;
       return order.save();
     })
@@ -63,22 +66,6 @@ module.exports.addProduct = (req, res, next) => {
     .catch(err => next(err));
 }
 
-/*module.exports.order = (req, res, next) => {
-  Order.findById(req.params.idOrder).exec()
-    .then(order => {
-      order.payment.method = req.body.paymentMethod;
-      order.payment.type = req.body.paymentType;
-      order.payment.currency = req.body.currency;
-
-      return Promise.all([
-        order.save(),
-        statusOnhold(order._id, order.office)
-      ]);
-    })
-    .then(rslts => res.json(rslts))
-    .catch(err => nex(err));
-}
-*/
 module.exports.showClientOrders = (req, res, next) => {
   Order.find({'office': req.params.idClient}).exec()
     .then(orders => res.json(orders))
@@ -120,7 +107,8 @@ module.exports.setStatusOnHold = (idOrder, idOffice) => {
   });
 }
 
-module.exports.setStatusPacking = (order, office) => {
+//esta función se usa en packageCtrl.store
+module.exports.setStatusPacking = (order, office, package) => {
   
   let status = {
     name: 'Empacando',
@@ -128,10 +116,15 @@ module.exports.setStatusPacking = (order, office) => {
   }
 
   return new Promise((resolve, reject) => {
+    let prevStateIndex = order.state.findIndex(o => o.name.toString() === 'En Espera');
+    order.state[prevStateIndex].time = (Date.now() - order.state[prevStateIndex].created_at.getTime() ) / 1000;
     order.state.push(status);
     order.currentState = status.name;
 
     office.wip.orders.pull({'order': order._id});
+    if (office.wip.packages.length <= 0 || office.wip.packages.findIndex(o => o.package.toString() === package._id.toString()) < 0) {
+      office.wip.packages.push({'package': package._id});
+    }
     Promise.all([
       order.save(),
       office.save()
@@ -141,56 +134,212 @@ module.exports.setStatusPacking = (order, office) => {
   });
 }
 
-module.exports.setStatusDeliveringOnHold = (order, office) =>{
-  let status = {
-    name: 'En Espera para enviar',
-    time: office.packages.package.length / (office.settings.deliveryEmployees * office.settings.deliveryTime)
-  }
-  return new Promise((resolve, reject) => {
-    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
-      .then(order => resolve(order))
-      .catch(err => reject(err));
-  });
+module.exports.setStatusDeliveringOnHold = (req, res, next) =>{
+  Package.findById(req.params.idPackage).populate('office.id').exec()
+    .then(package => {
+      let idOrders = package.orders.map(x => x.order);
+      return Promise.all([
+        Promise.resolve(package),
+        Order.find({'_id': {$in: idOrders}}).exec()
+      ]);
+    })
+    .then(rslts => {
+      let package = rslts[0];
+      let orders = rslts[1];
+
+      let saveAllOrders = [];
+
+      let office = package.office.id;
+      let status = {
+        name: 'En Espera para enviar',
+        estimatedTime: office.wip.packages.length / (office.settings.deliveryEmployees * office.settings.deliveryTime)
+      }
+
+      for(let order of orders){
+        let prevStateIndex = order.state.findIndex(o => o.name.toString() === 'Empacando');
+        order.state[prevStateIndex].time = (Date.now() - order.state[prevStateIndex].created_at.getTime() ) / 1000;
+        order.state.push(status);
+        order.currentState = status.name;
+
+        saveAllOrders.push(order.save());
+      }
+
+      return Promise.all(saveAllOrders);
+    })
+    .then(rslts => res.json(rslts))
+    .catch(err => next(err));
 }
 
-module.exports.setStatusDelivering = (order, office, package) => {
-  let status = {
-    name: 'Enviando',
-    time: package.timeToFinish
-  }
-  return new Promise((resolve, reject) => {
-    Promise.all([
-      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
-      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.pacakges.package': package._id}})
-    ])
-      .then(order => resolve(order))
-      .catch(err => reject(err));
-  }); 
+module.exports.setStatusDelivering = (req, res, next) => {
+  
+  Package.findById(req.params.idPackage).exec()
+    .then(package => {
+      
+      let idOrders = package.orders.map(x => x.order);
+
+      return Promise.all([
+        Promise.resolve(package),
+        Order.find({'_id': {$in: idOrders}}).exec(),
+        Office.findById(package.office.id).exec()
+      ]);
+
+    })
+    .then(rslts => {
+      let package = rslts[0];
+      let orders = rslts[1];
+      let office = rslts[2];
+
+      let saveAll = [];
+
+      let status = {
+        name: 'Enviando',
+        estimatedTime: package.timeToFinish
+      }
+
+      for(let order of orders){
+        let prevStateIndex = order.state.findIndex(o => o.name.toString() === 'En Espera para enviar');
+        order.state[prevStateIndex].time = (Date.now() - order.state[prevStateIndex].created_at.getTime()) / 1000;
+        order.state.push(status);
+        order.currentState = status.name;
+
+        saveAll.push(order.save());
+      }
+
+      office.wip.packages.pull(package._id);
+      saveAll.push(office.save());
+
+      return Promise.all(saveAll);
+    })
+    .then(rslt => res.json(rslt))
+    .catch(err => next(err));
 }
 
 
-module.exports.setStatusComplete = (order, office, package) => {
+module.exports.setStatusComplete = (req, res, next) => {
   let status = {
     name: 'Completado'
   }
-  return new Promise((resolve, reject) => {
-    Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec()
-      .then(order => resolve(order))
-      .catch(err => reject(err));
-  }); 
+  Promise.all([
+    Order.findById(req.params.idOrder).exec(),
+    Client.findById(req.user._id).exec()
+  ])
+    .then(rslts => {
+      let order = rslts[0];
+      let client = rslts[1];
+
+      let prevStateIndex = order.state.findIndex(o => o.name.toString() === 'En Espera para enviar');
+      order.state[prevStateIndex].time = (Date.now() - order.state[prevStateIndex].created_at.getTime()) / 1000;
+
+      order.state.push(status);
+      order.currentState = status.name;
+
+      return Promise.all([
+        charge(order, client.customerID),
+        order.save()
+      ]);
+    })
+    .then(rslt => res.json(rslt))
+    .catch(err => next(err));
 }
 
 
-module.exports.setStatusCancelled = (order, office, package) => {
+module.exports.setStatusCancelled = (req, res, next) => {
   let status = {
     name: 'Cancelado'
   }
-  return new Promise((resolve, reject) => {
-    Promise.all([
-      Order.findByIdAndUpdate(order._id, {$push: {'status': status}}).exec(),
-      Office.findByIdAndUpdate(office._id, {$pullAll: {'wip.orders.order': order._id}}).exec()
-    ])
-      .then(rslt => resolve(rslt))
-      .catch(err => reject(err));
-  }); 
+  Order.findById(req.params.id).exec()
+    .then(order => {
+      return Promise.all([
+        Promise.resolve(order),
+        Office.findById(order.office).exec(),
+        Package.findOne({'order.order': order._id}).exec()
+      ]);
+
+    })
+    .then(rslts => {
+      let order = rslts[0];
+      let office = rslts[1];
+      let package = rslts[2];
+
+      order.state.push(status);
+      order.currentState = status.name;
+      // calcular el cuota por cancelación
+
+      office.wip.orders.pull({'order': order._id});
+      if (package) {
+        package.orders.pull({'order': order._id});
+      }
+
+      return Promise.all([
+        order.save(),
+        office.save(),
+        package.save()
+      ]);
+    })
+    .catch(err => next(err));
 }
+
+
+module.exports.getChart = (req, res, next) => {
+  Order.find({'office': req.params.idOffice}).exec()
+    .then(orders => {
+      let dataChart = [];
+      for(let order of orders) {
+        for(let state of order.state){
+          let indexState = dataChart.findIndex(o => o.state === state.name.toString());
+          if ( indexState >= 0) {
+            if (dataChart[indexState].data) {
+              let indexStateDay = dataChart[indexState].data.findIndex(o => o.day === state.create_at.getDay());
+              if ( indexStateDay >= 0) {
+                dataChart[indexState].data[indexStateDay].orders.push({
+                  'id': order._id,
+                  'time': state.time
+                });
+              } else {
+                dataChart[indexState].data.push({
+                  'day': state.created_at.getDay(),
+                  'orders': [{
+                    'id': order._id,
+                    'time': state.time
+                  }]
+                });
+              }
+            } else {
+              dataChart[indexState].data = [];
+              dataChart[indexState].data.push({
+                'day': state.created_at.getDay(),
+                'orders': [{
+                  'id': order._id,
+                  'time': state.time
+                }]
+              });
+            }
+          } else {
+            dataChart.push({
+              'state': state.name,
+              'orders': [{
+                'day': state.created_at.getDay(),
+                'order': [{
+                  'id': order._id,
+                  'time': state.time
+                }]
+              }]
+            });
+          }
+        }
+      }
+
+      res.json(dataChart);
+    })
+    .catch(err => next(err));
+}
+
+let charge = (order, customerID) => {
+  return stripe.charges.create({
+    currency: order.payment.currency,
+    amount: order.amount,
+    customer: customerID
+  });
+}
+
+

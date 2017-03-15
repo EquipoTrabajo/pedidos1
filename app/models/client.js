@@ -6,6 +6,9 @@ const Schema = mongoose.Schema;
 const ClientSchema = new Schema({
   points: {
     type: Number
+  },
+  customerID: {
+    type: String
   }
 }, {discriminatorKey: 'type'});
 

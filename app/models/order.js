@@ -63,11 +63,7 @@ const OrderSchema = new Schema({
   },
   state: [{
     name: {
-      type: String,
-      default: 'En Espera'
-    },
-    review: {
-      type: Number
+      type: String
     },
     time: {
       type: Number
