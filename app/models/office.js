@@ -86,6 +86,40 @@ const OfficeSchema = new Schema({
   },
   currency: {
     type: String
+  },
+  income: {
+    dates: {
+      startDate: {
+        type: Date
+      },
+      endDate: {
+        type: Date
+      }
+    },
+    rate: {
+      type: Number
+    },
+    commission: {
+      type: Number
+    },
+    totalIncome: {
+      type: Number
+    },
+    cashCollected: {
+      type: Number
+    },
+    bankDeposit: {
+      type: Number
+    },
+    timeLine: {
+      type: Number
+    },
+    deliveryComplete: {
+      type: Number
+    },
+    ordersCancelled: {
+      type: Number
+    }
   }
 }, {discriminatorKey: 'type'});
 
